@@ -1,6 +1,6 @@
 using './main.bicep'
 
-param location = 'eastus2'
+param location = 'uaenorth'
 param aiServices = 'aiservices'
 param modelName = 'gpt-4o'
 param modelFormat = 'OpenAI'
@@ -20,6 +20,7 @@ param agentSubnetName = 'agent-subnet'
 param aiSearchResourceId = ''
 param azureStorageAccountResourceId = ''
 param azureCosmosDBAccountResourceId = ''
+param existingAoaiResourceId = ''
 // Pass the DNS zone map here
 // Leave empty to create new DNS zone, add the resource group of existing DNS zone to use it
 param existingDnsZones = {
