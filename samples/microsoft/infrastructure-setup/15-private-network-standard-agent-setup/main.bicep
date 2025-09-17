@@ -90,6 +90,9 @@ param azureStorageAccountResourceId string = ''
 @description('The Cosmos DB Account full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
 param azureCosmosDBAccountResourceId string = ''
 
+@description('The name of the existing Azure OpenAI resource you want to use for model deployments. Note: This is an optional field.')
+param existingAoaiResourceId string = ''
+
 //New Param for resource group of Private DNS zones
 //@description('Optional: Resource group containing existing private DNS zones. If specified, DNS zones will not be created.')
 //param existingDnsZonesResourceGroup string = ''
@@ -125,6 +128,7 @@ var storagePassedIn = azureStorageAccountResourceId != ''
 var searchPassedIn = aiSearchResourceId != ''
 var cosmosPassedIn = azureCosmosDBAccountResourceId != ''
 var existingVnetPassedIn = existingVnetResourceId != ''
+var aoaiPassedIn = existingAoaiResourceId != ''
 
 
 var acsParts = split(aiSearchResourceId, '/')
@@ -144,6 +148,12 @@ var vnetSubscriptionId = existingVnetPassedIn ? vnetParts[2] : subscription().su
 var vnetResourceGroupName = existingVnetPassedIn ? vnetParts[4] : resourceGroup().name
 var existingVnetName = existingVnetPassedIn ? last(vnetParts) : vnetName
 var trimVnetName = trim(existingVnetName)
+
+// If the existing AI OpenAI resource ID is passed in, extract the subscription ID, resource group name, and name
+var existingAoaiResourceIdParts = split(existingAoaiResourceId, '/')
+var aoaiSubscriptionId = aoaiPassedIn ? existingAoaiResourceIdParts[2] : subscription().subscriptionId
+var aoaiResourceGroupName = aoaiPassedIn ? existingAoaiResourceIdParts[4] : resourceGroup().name
+var aoaiName = aoaiPassedIn ? existingAoaiResourceIdParts[8] : 'noAoaiPassedIn'
 
 @description('The name of the project capability host to be created')
 param projectCapHost string = 'caphostproj'
@@ -193,6 +203,7 @@ module validateExistingResources 'modules-network-secured/validate-existing-reso
     aiSearchResourceId: aiSearchResourceId
     azureStorageAccountResourceId: azureStorageAccountResourceId
     azureCosmosDBAccountResourceId: azureCosmosDBAccountResourceId
+    existingAoaiResourceId: existingAoaiResourceId
     existingDnsZones: existingDnsZones
     dnsZoneNames: dnsZoneNames
   }
@@ -294,6 +305,12 @@ module aiProject 'modules-network-secured/ai-project-identity.bicep' = {
     azureStorageName: aiDependencies.outputs.azureStorageName
     azureStorageSubscriptionId: aiDependencies.outputs.azureStorageSubscriptionId
     azureStorageResourceGroupName: aiDependencies.outputs.azureStorageResourceGroupName
+
+    aoaiPassedIn: aoaiPassedIn
+    existingAoaiName: aoaiName
+    existingAoaiSubscriptionId: aoaiSubscriptionId
+    existingAoaiResourceGroupName: aoaiResourceGroupName
+
     // dependent resources
     accountName: aiAccount.outputs.accountName
   }
@@ -366,6 +383,9 @@ module addProjectCapabilityHost 'modules-network-secured/add-project-capability-
     azureStorageConnection: aiProject.outputs.azureStorageConnection
     aiSearchConnection: aiProject.outputs.aiSearchConnection
     projectCapHost: projectCapHost
+
+    aoaiPassedIn: aoaiPassedIn
+    existingAoaiConnection: aiProject.outputs.existingAoaiConnection
   }
   dependsOn: [
      aiSearch      // Ensure AI Search exists
